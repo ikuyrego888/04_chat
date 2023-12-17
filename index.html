@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <title>Family-Chat</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- コンテンツ表示画面 -->
+    <div href="" class="container"> 
+        <div id="chatHeader">Family-Chat
+            <div id="logOut">log-out</div>
+        </div>
+        <div id="loginForm">
+            <div id="logIn">Log-in
+            </div>
+            <table id="loginTable01">
+                <tr>
+                    <td class="td01">e-mail：</td>
+                    <td class="td02"><input id="emailAddress" type="email" placeholder="メールアドレス" required/></td>
+                </tr>
+                <tr>
+                    <td class="td01">password：</td>
+                    <td class="td02"><input id="password" type="password" placeholder="パスワード" required/></td>
+                </tr>
+                <!-- ユーザー名を保存するにはFirebase Authenticationではダメで、Firestoreを使用する必要があるため断念💀 -->
+                <!-- <tr>
+                    <td class="td01">user-name：</td>
+                    <td class="td02"><input id="userName" placeholder="ユーザー名" type=""></td>
+                </tr> -->
+            </table>
+            <table id="loginTable02">
+                <tr>
+                    <td><button id="register">NEW ACCOUT</button></td>
+                    <td><button id="login">LOGIN</button></td>
+                </tr>
+            </table>
+        </div>
+        <div class="chatBox">
+            <div class="chatArea">
+                <div id="output"></div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <div id="unameText">
+            <div>
+                <input type="text" id="uname">
+            </div>
+            <div class="messageArea">
+                <textarea name="" id="text"></textarea>
+                <dig id="send"><img src="imgs/send.png" alt="" id="sendIcon"></dig>
+            </div>
+        </div>
+    </footer>
+    
+    <!--/ コンテンツ表示画面 -->
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <!-- JQuery -->
+
+
+    <!--** 以下Firebase **-->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+        import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved }
+            from "https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-database.js";
+        // ユーザーアカウントの登録・ログイン（Firebase Authentication）
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserSessionPersistence }
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // import { getAuth, signInWithEmailAndPassword }
+        //     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // import { getAuth, signInWithEmailAndPassword }
+        //     from "https://www.gstatic.com/firebasejs/ui/10.7.1/firebase-ui-auth.js";
+        // Your web app's Firebase configuration
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLaMK-GlFo7KMSWOnY5YPpHftOAaPaHtQ",
+            authDomain: "fir-test-9845e.firebaseapp.com",
+            projectId: "fir-test-9845e",
+            storageBucket: "fir-test-9845e.appspot.com",
+            messagingSenderId: "648307675578",
+            appId: "1:648307675578:web:770ad2e1f5ff0ab10f8d83"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        // データベースの参照を作成
+        const db = getDatabase(app);
+        const dbRef = ref( db , "chat" );
+        
+        // 以下は最終的に削除（リロード時のUID取得検証用用にセット（現状ログイン保持できていないためダメ💀）
+        let auth = getAuth();
+        console.log(auth);
+        let lastNotifiedUid = auth.lastNotifiedUid;
+        console.log(lastNotifiedUid);
+        $(document).ready(function(){ 
+            let auth = getAuth();
+            console.log(auth);
+            let lastNotifiedUid = auth.lastNotifiedUid;
+            console.log(lastNotifiedUid);
+            console.log(dbRef);
+        })
+
+        // ログインするまでメッセージ送信エリアを隠す
+        $("#unameText").hide();
+        $("#uname","#text").prop("disabled",true);
+        
+        // ユーザー新規登録
+        $("#register").on("click",function(){
+            let email = $("#emailAddress").val();
+            let password = $("#password").val();
+            let displayName = $("#userName").val();
+            let auth = getAuth();
+            createUserWithEmailAndPassword(auth, email, password, displayName).then((userCredential) => {
+                let user = userCredential.user;
+                let uid = user.uid;
+                console.log(user);
+                console.log(uid);
+            }).catch((error) => {
+                let errorCode = error.code;
+                let errorMessage = error.message;
+                console.log(errorCode);
+                console.log(errorMessage);
+            });
+            console.log(auth);
+        });
+
+        // ユーザーログイン状態の保持1️⃣（できない・・・💀）
+        // setPersistence(auth, browserSessionPersistence).then(() => {
+        //     $("#login").on("click",function(){
+        //         let email = $("#emailAddress").val();
+        //         let password = $("#password").val();        
+        //         let auth = getAuth();
+        //         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
+        //             let user = userCredential.user;
+        //             let uid = user.uid;
+        //             console.log(user);
+        //             console.log(uid);
+        //             // ログインしたらUIDをtextareaのname属性に付与する
+        //             let loginUid = $(text).attr("name",uid);
+        //             console.log(loginUid);
+        //         }).catch((error) => {
+        //             let errorCode = error.code;
+        //             let errorMessage = error.message;
+        //             console.log(errorCode);
+        //             console.log(errorMessage);
+        //         });
+        //     });
+        // })
+
+        // ユーザーログイン状態の保持2️⃣（できない・・・💀）
+        // onAuthStateChanged(auth,(user) => {
+        //     if(user) {
+        //         let uid = user.uid;
+        //         db.collection("users").doc(uid).get().then(function(doc) {
+        //             if(doc.exists) {
+        //                 let userData = doc.data();
+        //                 $("#userData").html("UserData:" + JSON.stringify(userData));
+        //             } else {
+        //                 console.log("NO such document!");
+        //             }
+        //         }).catch(function(error){
+        //             console.error("Error getting document:", error);
+        //         });
+        //     } else {
+        //         console.log("User is logged out");
+        //     }
+        // });
+
+        // メッセージ送信ボタンを押したら...の設定
+        $("#send").on("click",function() {
+            // textが空の場合は処理をやめる
+            // .trim()を設定することで見えない空白を削除し、改行されていてもtextが空であれば送信不可になる
+            let textCheck = $("#text").val().trim()
+            console.log(textCheck);
+            if ( textCheck == ""){
+                return;
+            }
+            // unameによってアイコンを変える
+            let userIcon = "";
+            if ( $("#uname").val() == "チーズ" ){
+                userIcon = `<img src = "imgs/iconBearV2.png" class="userIcon">`
+                console.log(userIcon);
+            } else if ( $("#uname").val() !== "チーズ" ){
+                userIcon = `<img src = "imgs/iconV2.png" class="userIcon">`
+                console.log(userIcon);
+            }
+            // 送信時間のログを取る
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1 ;
+            let date = now.getDate();
+            // 曜日を配列使って取得する
+            let dayOfWeek = now.getDay();
+            let dayOfWeekArry = ["(日)","(月)","(火)","(水)","(木)","(金)","(土)"][dayOfWeek];
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            // minutesが一桁の場合、頭に"0"を付ける
+            minutes = String(minutes).padStart(2,"0");
+            console.log(minutes);
+            let nowCV = year + "/" + month + "/" + date + dayOfWeekArry + " " + hours + ":" + minutes;
+            console.log(nowCV);
+            const msg = {
+                nowCV,
+                userIcon,
+                uname: $("#uname").val(),
+                // loginUidを以下でtextareaにセット
+                loginUid: $("#text").attr("name"),
+                text: $("#text").val(),
+            };
+            // console.log(msg);
+            const newPostRef = push(dbRef);
+            console.log(newPostRef);
+            set(newPostRef, msg);
+            // 以下でメッセージ送信したときにchatAreaのスクロール位置を最下部にする
+            $(".chatArea").scrollTop($(".chatArea")[0].scrollHeight);
+            // メッセージ送信したらtextを空にする
+            $("#text").val("");
+            // メッセージ送信した後はtextをFocusする。
+            $("#text").focus();
+        });
+    
+    // 熊さんアイコンの変数
+    // let iconBear = `<img src = imgs/iconBearV2.png class="userIcon">`
+
+    // ユーザーログイン（ログインしたらChatを表示させる）
+    $("#login").on("click",function(){
+        let email = $("#emailAddress").val();
+        let password = $("#password").val();        
+        let auth = getAuth();
+        $("#loginForm").hide();
+        $("#unameText").show();
+        signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
+            let user = userCredential.user;
+            let uid = user.uid;
+            console.log(user);
+            console.log(uid);
+            // ログインしたらUIDをtextareaのname属性に付与する
+            let loginUid = $(text).attr("name",uid);
+            console.log(loginUid);
+        }).catch((error) => {
+            let errorCode = error.code;
+            let errorMessage = error.message;
+            console.log(errorCode);
+            console.log(errorMessage);
+        }).then(function(){
+            onChildAdded(dbRef, function (data) {
+                console.log(auth);
+                // auth内のlastNotifiedUidにloginUIDを発見しました💡
+                let lastNotifiedUid = auth.lastNotifiedUid;
+                console.log(lastNotifiedUid);
+                console.log(data);
+                console.log(data.val());
+                const msg = data.val(); //val()によりkeyの中身のデータが取り出せる。
+                const key = data.key;
+                console.log(key);
+                console.log($(text).attr("name"));
+                if( msg.loginUid == lastNotifiedUid && lastNotifiedUid !== "") {
+                    let h = `<div id="${key}" class="message00">`
+                    h += `<p id="dataUname00">`
+                    h += msg.uname;
+                    h += `</p><p id="dataTextNowCV00"><span id="dataIcon">`
+                    // h += msg.userIcon;
+                    h += `</span><span id="dataNowCV00">`
+                    h += msg.nowCV
+                    h += `</span><span id="dataText00">`
+                    h += msg.text
+                    h += `</span></p></div>`
+                    // #output の最後に追加
+                    $("#output").append(h);
+                    // 以下でリロードしたときにchatAreaのスクロール位置を最下部にする
+                    // アイコンを差し込んだことでスクロール位置がずれてしまう💡
+                    $(".chatArea").scrollTop($(".chatArea")[0].scrollHeight)
+                } else if ( msg.loginUid !== lastNotifiedUid ) {
+                    let h = `<div id="${key}" class="message">`
+                    h += `<p id="dataUname">`
+                    h += msg.uname;
+                    h += `</p><p id="dataTextNowCV"><span id="dataIcon">`
+                    h += msg.userIcon;
+                    h += `</span><span id="dataText">`
+                    h += msg.text
+                    h += `</span><span id="dataNowCV">`
+                    h += msg.nowCV
+                    h += `</span></p></div>`
+                    $("#output").append(h); // #output の最後に追加
+                    // 以下でリロードしたときにchatAreaのスクロール位置を最下部にする
+                    // アイコンを差し込んだことでスクロール位置がずれてしまう💡
+                    $(".chatArea").scrollTop($(".chatArea")[0].scrollHeight)
+                };
+            });
+        })
+    });
+
+    // メッセージをクリックしたら削除する
+    $("#output").on("click", ".message" ,function(){
+        // alert("クリックできたね");
+        const clickMsg = $(this).attr("id");
+        console.log(clickMsg);
+        const chatRef = ref (db, "chat/" + clickMsg );
+        remove(chatRef);
+        $("#removeMsg").remove();
+    });
+    $("#output").on("click", ".message00" ,function(){
+        // alert("クリックできたね");
+        const clickMsg = $(this).attr("id");
+        console.log(clickMsg);
+        const chatRef = ref (db, "chat/" + clickMsg );
+        remove(chatRef);
+        $("#removeMsg").remove();
+    });
+
+    // メッセージをクリックしたらFirebaseのデータも削除する
+    onChildRemoved(dbRef, function(data) {
+        console.log(data.val());
+        const removeMsg = data.key;
+        console.log(removeMsg)
+        $("#"+ removeMsg).remove();
+    });
+
+    // Enterキー(which===13)を押すとメッセージ送信できる
+    // keyupだとIME確定時のEnterで送信されてしまうため、keydownとする
+    $("#text").on("keydown",function(event){
+        // && !e.shihtKeyを設定することで Shiftキー＋Enterキー の場合は改行
+        if (event.which === 13 && !event.shiftKey){
+            $("#send").click()
+        }
+    });
+
+    // textが空の場合はEnterキー押しても改行できないようにする。
+    // 但し、Shiftキー＋Enterキー を押せば改行はできる。
+    $("#text").on("keydown",function(event){
+        if ($("#text").val()=="" && event.which === 13 && !event.shiftKey){    
+            event.preventDefault();
+        }
+    });
+
+    // ユーザーログイン状態の保持3️⃣（できない・・・💀）
+    setPersistence(auth, browserSessionPersistence).then(() => {
+        signInWithEmailAndPassword(auth, email, password);
+    }).catch((error) => {
+        let errorCode = error.code;
+        let errorMessage = error.message;
+    });
+
+    // ログアウトの設定
+    $("#logOut").on("click",function(){
+        auth.signOut().then(() => {
+            console.log("Successfully signed out");
+        }).catch((error) => {
+            ("Sign out error:", error);
+        });
+        location.reload();
+    });
+
+
+    </script>
+
+</body>
+
+</html>
